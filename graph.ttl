@@ -1,0 +1,32 @@
+@prefix cve: <http://example.org/cve#> .
+
+<http://example.org/cve/CVE-2024-0001> a cve:CVE ;
+    cve:assignedTo "Alice" ;
+    cve:dateIdentified "2024-02-15" ;
+    cve:dateResolved "2024-03-01" ;
+    cve:description "Remote code execution vulnerability in ExampleApp 1.0" ;
+    cve:email "alice@example.com" ;
+    cve:severity "High" ;
+    cve:software "ExampleApp 1.0" ;
+    cve:status "Open" .
+
+<http://example.org/cve/CVE-2024-0002> a cve:CVE ;
+    cve:assignedTo "Bob" ;
+    cve:dateIdentified "2024-04-10" ;
+    cve:dateResolved "None" ;
+    cve:description "SQL Injection vulnerability in WebPortal 2.5" ;
+    cve:email "bob@example.com" ;
+    cve:severity "Medium" ;
+    cve:software "WebPortal 2.5" ;
+    cve:status "Resolved" .
+
+<http://example.org/cve/CVE-2024-0003> a cve:CVE ;
+    cve:assignedTo "Charlie" ;
+    cve:dateIdentified "2024-05-05" ;
+    cve:dateResolved "None" ;
+    cve:description "Information disclosure in API endpoint" ;
+    cve:email "charlie@example.com" ;
+    cve:severity "Low" ;
+    cve:software "APIService 3.2" ;
+    cve:status "In Progress" .
+
