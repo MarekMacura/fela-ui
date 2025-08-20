@@ -1,0 +1,380 @@
+<!doctype html>  
+<html lang="en">  
+<head>  
+  <meta charset="utf-8">  
+  <title>CVE Lifecycle Management</title>  
+  <link href="https://cdn.jsdelivr.net/npm/bootswatch@5.3.0/dist/lux/bootstrap.min.css" rel="stylesheet">  
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css">  
+  <link rel="stylesheet" href="https://unpkg.com/jkanban@1.3.1/dist/jkanban.min.css" />  
+  <style>  
+    /* Badges */  
+    .badge-critical { background-color: #dc3545; }  
+    .badge-high { background-color: #fd7e14; }  
+    .badge-medium { background-color: #ffc107; color: #000; }  
+    .badge-low { background-color: #198754; }  
+  
+    /* Kanban container */  
+    #myKanban {  
+        background: #f4f5f7;  
+        padding: 15px;  
+        min-height: 500px;  
+        border-radius: 8px;  
+        overflow-x: auto;  
+        display: flex;  
+        gap: 15px;  
+    }  
+  
+    /* Kanban boards */  
+    .kanban-board {  
+        background: #fff;  
+        border-radius: 8px;  
+        box-shadow: 0 2px 6px rgba(0,0,0,0.15);  
+        overflow: hidden;  
+        width: 300px !important;  
+    }  
+    .kanban-title-board {  
+        padding: 10px;  
+        font-weight: bold;  
+        font-size: 16px;  
+        color: #fff;  
+    }  
+    .kanban-item {  
+        background: #ffffff;  
+        padding: 10px;  
+        border-radius: 6px;  
+        margin: 10px;  
+        box-shadow: 0 1px 3px rgba(0,0,0,0.2);  
+        font-size: 14px;  
+    }  
+  
+    /* Column color styles */  
+    .board-open .kanban-title-board { background: #e74c3c; }  
+    .board-progress .kanban-title-board { background: #f39c12; }  
+    .board-resolved .kanban-title-board { background: #27ae60; }  
+  </style>  
+</head>  
+<body class="p-4 bg-light">  
+<div class="container-fluid">  
+  <div class="d-flex justify-content-between mb-4">  
+      <h1 class="fw-bold">CVE Lifecycle Management</h1>  
+      <div>  
+          <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#cveModal" onclick="openAddModal()">➕ Add CVE</button>  
+          <a href="/charts" class="btn btn-primary">📊 Charts</a>  
+          <a href="/rdf" class="btn btn-secondary">⬇ RDF Export</a>  
+      </div>  
+  </div>  
+  
+  <!-- Table -->  
+  <div class="card shadow-sm mb-4">  
+    <div class="card-header bg-primary text-white fw-bold">CVE Table</div>  
+    <div class="card-body">  
+      <table id="cveTable" class="table table-hover">  
+          <thead>  
+              <tr>  
+                  <th>CVE ID</th>  
+                  <th>Severity</th>  
+                  <th>Description</th>  
+                  <th>Software</th>  
+                  <th>Date Identified</th>  
+                  <th>Date Resolved</th>  
+                  <th>Assigned To</th>  
+                  <th>Email</th>  
+                  <th>Status</th>  
+                  <th>Actions</th>  
+              </tr>  
+          </thead>  
+          <tbody></tbody>  
+      </table>  
+    </div>  
+  </div>  
+  
+  <!-- Kanban -->  
+  <div class="card shadow-sm">  
+    <div class="card-header bg-info text-white fw-bold">  
+      Kanban View  
+      <div class="mt-2">  
+        <select id="filterSeverity" class="form-select form-select-sm d-inline-block w-auto">  
+          <option value="">All Severities</option>  
+          <option>Critical</option>  
+          <option>High</option>  
+          <option>Medium</option>  
+          <option>Low</option>  
+        </select>  
+        <select id="filterAssignee" class="form-select form-select-sm d-inline-block w-auto">  
+          <option value="">All Assignees</option>  
+        </select>  
+        <button class="btn btn-sm btn-light" onclick="loadKanban()">Apply Filters</button>  
+      </div>  
+    </div>  
+    <div class="card-body">  
+      <div id="myKanban"></div>  
+    </div>  
+  </div>  
+</div>  
+  
+<!-- Modal -->  
+<div class="modal fade" id="cveModal" tabindex="-1">  
+  <div class="modal-dialog">  
+    <div class="modal-content">  
+      <div class="modal-header">  
+        <h5 class="modal-title" id="modalTitle">Add CVE</h5>  
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>  
+      </div>  
+      <div class="modal-body">  
+        <form id="cveForm">  
+          <input type="hidden" id="editMode" value="false">  
+          <div class="mb-2"><input class="form-control" id="cve_id" placeholder="CVE ID" required></div>  
+          <div class="mb-2"><input class="form-control" id="severity" placeholder="Severity (Critical/High/Medium/Low)" required></div>  
+          <div class="mb-2"><input class="form-control" id="description" placeholder="Description" required></div>  
+          <div class="mb-2"><input class="form-control" id="software" placeholder="Software" required></div>  
+          <div class="mb-2"><input type="date" class="form-control" id="date_identified" required></div>  
+          <div class="mb-2"><input type="date" class="form-control" id="date_resolved"></div>  
+          <div class="mb-2"><input class="form-control" id="assigned_to" placeholder="Assigned To" required></div>  
+          <div class="mb-2"><input type="email" class="form-control" id="email" placeholder="Email" required></div>  
+          <div class="mb-2">  
+            <select class="form-control" id="status" required>  
+              <option>Open</option>  
+              <option>In Progress</option>  
+              <option>Resolved</option>  
+            </select>  
+          </div>  
+        </form>  
+      </div>  
+      <div class="modal-footer">  
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>  
+        <button type="button" class="btn btn-primary" onclick="saveCVE()">Save</button>  
+      </div>  
+    </div>  
+  </div>  
+</div>  
+  
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>  
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>  
+<script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>  
+<script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>  
+<script src="https://unpkg.com/jkanban@1.3.1/dist/jkanban.min.js"></script>  
+  
+<script>  
+let table;  
+let kanban;  
+let allData = [];  
+  
+function badgeSeverity(sev) {  
+    const s = sev.toLowerCase();  
+    if (s === "critical") return `<span class="badge badge-critical">Critical</span>`;  
+    if (s === "high") return `<span class="badge badge-high">High</span>`;  
+    if (s === "medium") return `<span class="badge badge-medium">Medium</span>`;  
+    return `<span class="badge badge-low">Low</span>`;  
+}  
+  
+function badgeStatus(st) {  
+    if (st === "Open") return `<span class="badge bg-danger">Open</span>`;  
+    if (st === "In Progress") return `<span class="badge bg-warning text-dark">In Progress</span>`;  
+    return `<span class="badge bg-success">Resolved</span>`;  
+}  
+  
+function kanbanCardHTML(c) {  
+    return `<div>  
+        <strong>${c.cve_id}</strong><br>  
+        ${badgeSeverity(c.severity)} ${badgeStatus(c.status)}<br>  
+        <small>${c.software}</small>  
+    </div>`;  
+}  
+  
+function loadTable() {  
+    $.getJSON('/api/cves', function(data) {  
+        allData = data;  
+        table.clear();  
+        const assignees = [...new Set(data.map(c => c.assigned_to))];  
+        $('#filterAssignee').html('<option value="">All Assignees</option>' +  
+            assignees.map(a => `<option>${a}</option>`).join(''));  
+        data.forEach(c => {  
+            table.row.add([  
+                c.cve_id, badgeSeverity(c.severity), c.description, c.software,  
+                c.date_identified, c.date_resolved || '', c.assigned_to, c.email, badgeStatus(c.status),  
+                `<div class="dropdown">  
+                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">Actions</button>  
+                    <ul class="dropdown-menu">  
+                      <li><a class="dropdown-item" href="#" onclick="openEditModal('${c.cve_id}')">Edit</a></li>  
+                      <li><a class="dropdown-item text-danger" href="#" onclick="deleteCVE('${c.cve_id}')">Delete</a></li>  
+                      <li><a class="dropdown-item text-primary" href="#" onclick="sendAlert('${c.cve_id}')">Send Email Alert</a></li>  
+                    </ul>  
+                  </div>`  
+            ]);  
+        });  
+        table.draw();  
+        loadKanban();  
+    });  
+}  
+  
+function loadKanban() {  
+    const sevFilter = $('#filterSeverity').val();  
+    const assigneeFilter = $('#filterAssignee').val();  
+    let filtered = allData.filter(c =>   
+        (!sevFilter || c.severity === sevFilter) &&  
+        (!assigneeFilter || c.assigned_to === assigneeFilter)  
+    );  
+  
+    // Reset container  
+    const old = document.getElementById('myKanban');  
+    const parent = old.parentNode;  
+    old.remove();  
+    const newDiv = document.createElement('div');  
+    newDiv.id = 'myKanban';  
+    newDiv.style.minHeight = '500px';  
+    parent.appendChild(newDiv);  
+  
+    kanban = new jKanban({  
+        element: '#myKanban',  
+        gutter: '10px',  
+        widthBoard: '300px',  
+        dragBoards: false,  
+        dropEl: function(el, target, source, sibling){  
+            let cve_id = el.dataset.eid;  
+            let newStatus = target.parentElement.querySelector('.kanban-title-board').innerText;  
+            updateStatus(cve_id, newStatus);  
+        },  
+        boards: [  
+            {  
+                id: '_open',  
+                title: 'Open',  
+                class: 'board-open',  
+                item: filtered.filter(c => c.status === 'Open').map(c => ({  
+                    id: c.cve_id,  
+                    title: kanbanCardHTML(c),  
+                    eId: c.cve_id  
+                }))  
+            },  
+            {  
+                id: '_progress',  
+                title: 'In Progress',  
+                class: 'board-progress',  
+                item: filtered.filter(c => c.status === 'In Progress').map(c => ({  
+                    id: c.cve_id,  
+                    title: kanbanCardHTML(c),  
+                    eId: c.cve_id  
+                }))  
+            },  
+            {  
+                id: '_resolved',  
+                title: 'Resolved',  
+                class: 'board-resolved',  
+                item: filtered.filter(c => c.status === 'Resolved').map(c => ({  
+                    id: c.cve_id,  
+                    title: kanbanCardHTML(c),  
+                    eId: c.cve_id  
+                }))  
+            }  
+        ]  
+    });  
+}  
+  
+function updateStatus(cve_id, status) {  
+    $.getJSON('/api/cves', function(data) {  
+        const cve = data.find(x => x.cve_id === cve_id);  
+        if (cve) {  
+            cve.status = status;  
+            $.ajax({  
+                url: '/api/cves/' + cve_id,  
+                type: 'PUT',  
+                contentType: 'application/json',  
+                data: JSON.stringify(cve),  
+                success: function() {  
+                    loadTable();  
+                    loadKanban();  
+                }  
+            });  
+        }  
+    });  
+}  
+  
+function sendAlert(cve_id) {  
+    $.post('/api/alert/' + cve_id, function(res) {  
+        alert(res.message);  
+    });  
+}  
+  
+function openAddModal() {  
+    $('#modalTitle').text('Add CVE');  
+    $('#editMode').val(false);  
+    $('#cve_id').prop('disabled', false);  
+    $('#cveForm')[0].reset();  
+}  
+  
+function openEditModal(cve_id) {  
+    $.getJSON('/api/cves', function(data) {  
+        const cve = data.find(x => x.cve_id === cve_id);  
+        $('#modalTitle').text('Edit CVE');  
+        $('#editMode').val(true);  
+        $('#cve_id').val(cve.cve_id).prop('disabled', true);  
+        $('#severity').val(cve.severity);  
+        $('#description').val(cve.description);  
+        $('#software').val(cve.software);  
+        $('#date_identified').val(cve.date_identified);  
+        $('#date_resolved').val(cve.date_resolved || '');  
+        $('#assigned_to').val(cve.assigned_to);  
+        $('#email').val(cve.email);  
+        $('#status').val(cve.status);  
+        new bootstrap.Modal(document.getElementById('cveModal')).show();  
+    });  
+}  
+  
+function saveCVE() {  
+    const payload = {  
+        cve_id: $('#cve_id').val(),  
+        severity: $('#severity').val(),  
+        description: $('#description').val(),  
+        software: $('#software').val(),  
+        date_identified: $('#date_identified').val(),  
+        date_resolved: $('#date_resolved').val() || null,  
+        assigned_to: $('#assigned_to').val(),  
+        email: $('#email').val(),  
+        status: $('#status').val()  
+    };  
+    if ($('#editMode').val() === 'true') {  
+        $.ajax({  
+            url: '/api/cves/' + payload.cve_id,  
+            type: 'PUT',  
+            contentType: 'application/json',  
+            data: JSON.stringify(payload),  
+            success: function() {  
+                $('#cveModal').modal('hide');  
+                loadTable();  
+                loadKanban();  
+            }  
+        });  
+    } else {  
+        $.ajax({  
+            url: '/api/cves',  
+            type: 'POST',  
+            contentType: 'application/json',  
+            data: JSON.stringify(payload),  
+            success: function() {  
+                $('#cveModal').modal('hide');  
+                loadTable();  
+                loadKanban();  
+            }  
+        });  
+    }  
+}  
+  
+function deleteCVE(cve_id) {  
+    if (confirm('Delete ' + cve_id + '?')) {  
+        $.ajax({  
+            url: '/api/cves/' + cve_id,  
+            type: 'DELETE',  
+            success: function() {  
+                loadTable();  
+                loadKanban();  
+            }  
+        });  
+    }  
+}  
+  
+$(document).ready(function() {  
+    table = $('#cveTable').DataTable();  
+    loadTable();  
+});  
+</script>  
+</body>  
+</html>  

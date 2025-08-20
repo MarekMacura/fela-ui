@@ -1,0 +1,60 @@
+<!doctype html>  
+<html lang="en">  
+<head>  
+<meta charset="utf-8">  
+<title>CVE Statistics</title>  
+<link href="https://cdn.jsdelivr.net/npm/bootswatch@5.3.0/dist/lux/bootstrap.min.css" rel="stylesheet">  
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>  
+</head>  
+<body class="p-4 bg-light">  
+<div class="container">  
+    <h1 class="mb-4">CVE Statistics</h1>  
+    <a href="/" class="btn btn-secondary mb-4">← Back</a>  
+    <div class="row">  
+        <div class="col-md-6">  
+            <canvas id="severityChart"></canvas>  
+        </div>  
+        <div class="col-md-6">  
+            <canvas id="statusChart"></canvas>  
+        </div>  
+    </div>  
+</div>  
+  
+<script>  
+fetch('/api/cves')  
+  .then(res => res.json())  
+  .then(data => {  
+    const severityCounts = {};  
+    const statusCounts = {};  
+    data.forEach(c => {  
+        severityCounts[c.severity] = (severityCounts[c.severity] || 0) + 1;  
+        statusCounts[c.status] = (statusCounts[c.status] || 0) + 1;  
+    });  
+  
+    new Chart(document.getElementById('severityChart'), {  
+        type: 'pie',  
+        data: {  
+            labels: Object.keys(severityCounts),  
+            datasets: [{  
+                data: Object.values(severityCounts),  
+                backgroundColor: ['#dc3545', '#fd7e14', '#ffc107', '#198754']  
+            }]  
+        },  
+        options: { plugins: { title: { display: true, text: 'Severity Distribution' } } }  
+    });  
+  
+    new Chart(document.getElementById('statusChart'), {  
+        type: 'doughnut',  
+        data: {  
+            labels: Object.keys(statusCounts),  
+            datasets: [{  
+                data: Object.values(statusCounts),  
+                backgroundColor: ['#dc3545', '#198754']  
+            }]  
+        },  
+        options: { plugins: { title: { display: true, text: 'Status Distribution' } } }  
+    });  
+});  
+</script>  
+</body>  
+</html>  
